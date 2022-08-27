@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+    }
+
+    body {
+      font-family: 'Open Sans', sans-serif;
+      font-size: 0.9rem;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      min-height: 100vh;
+      background-color: #1363DF;
+    }
+
+    .card {
+      background-color: white;
+      padding: 16px;
+      border-radius: 8px;
+      width: 50%;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group:not(:last-child) {
+      margin-bottom: 10px;
+    }
+
+    label,
+    p {
+      font-weight: 700;
+      letter-spacing: 0.05rem;
+      margin: 0 0 2px;
+    }
+
+    input:not([type="color"]) {
+      padding: 16px;
+      border-radius: 8px;
+      background-color: #F0F0F0;
+    }
+
+    #colors {
+      display: flex;
+      gap: 5px;
+    }
+
+    .color {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 50px;
+      height: 30px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .color svg {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    .color:hover svg {
+      display: block;
+      opacity: 1;
+    }
+
+    .colors {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .flex {
+      display: flex;
+    }
+
+    .items-center {
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <div class="form-group">
+      <label for="image">Select image</label>
+      <input type="file" accept=".png,.jpeg,.jpg" id="image" />
+    </div>
+
+    <div class="colors">
+      <div>
+        <p>Colors to remove</p>
+        <div id="colors">
+          <span>No colors added</span>
+        </div>
+      </div>
+      <div>
+        <div class="form-group">
+          <label for="canvas-color">Canvas color</label>
+          <input type="color" id="canvas-color">
+        </div>
+      </div>
+      <div>
+        <label for="color">Add new color</label>
+        <div class="flex items-center" style="gap: 5px">
+          <input type="color" id="color">
+          <button id="addcolor" style="flex: 1;">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: center;">
+      <canvas style="margin-top: 15px"></canvas>
+    </div>
+
+    <div style="text-align: center; margin-top: 10px">
+      <button>Download</button>
+    </div>
+  </div>
+
+  <script>
+
+    let colors = [];
+
+    const canvas = document.querySelector('canvas');
+    let originalData;
+    const ctx = canvas.getContext('2d');
+    const file = document.querySelector('input');
+    const colorsElement = document.getElementById('colors');
+    const colorElement = document.getElementById('color');
+    const canvasColor = document.getElementById('canvas-color');
+
+    canvas.style.backgroundColor = canvasColor.value;
+    canvasColor.onchange = () => canvas.style.backgroundColor = canvasColor.value;
+
+    const recalculate = () => {
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const { width, height } = canvas;
+      const { data } = imgData;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const red = data[i];
+        const green = data[i + 1];
+        const blue = data[i + 2];
+        const alpha = data[i + 3];
+
+        if (alpha === 0) continue;
+
+        for (let color of colors) {
+          if (
+            red >= Math.max(color.red, 0) - 10 && red <= Math.min(color.red, 255) + 10 &&
+            green >= Math.max(color.green, 0) - 10 && green <= Math.min(color.green, 255) + 10 &&
+            blue >= Math.max(color.blue, 0) - 10 && blue <= Math.min(color.blue, 255) + 10
+          ) {
+            data[i + 3] = 0;
+          }
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+    };
+
+    const hexToRGB = color => {
+      if (color.startsWith('#')) color = color.substring(1);
+      const red = parseInt(color.substring(0, 2), 16);
+      const green = parseInt(color.substring(2, 4), 16);
+      const blue = parseInt(color.substring(4, 6), 16);
+
+      return { red, green, blue };
+    }
+
+    document.getElementById('addcolor').onclick = () => {
+      if (colors.length === 0) colorsElement.innerHTML = '';
+
+      const color = hexToRGB(colorElement.value);
+      colors.push(color);
+
+      const colorDiv = document.createElement('div');
+      colorDiv.className = 'color';
+      colorDiv.style.backgroundColor = colorElement.value;
+      colorDiv.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" stroke="#FF1E00" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="css-i6dzq1"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
+      colorDiv.onclick = () => {
+        colorDiv.remove();
+        colors = colors.filter(c => c !== color);
+        ctx.putImageData(originalData, 0, 0);
+        recalculate();
+      }
+
+      colorsElement.append(colorDiv);
+      recalculate();
+    }
+
+    file.onchange = () => {
+      if (file.files && file.files[0]) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file.files[0]);
+        reader.onload = e => {
+          const img = new Image();
+          img.src = e.target.result;
+          img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          }
+        }
+      }
+    };
+
+    document.getElementsByTagName('button')[1].onclick = () => {
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = 'image.png';
+      a.click();
+    }
+  </script>
+
+</body>
+
+</html>
